@@ -39,37 +39,32 @@ function dpReduce(pts, eps) {
   return [pts[0], pts[end]];
 }
 
-// ── Draw a variable-width stroke onto any ctx ─────────────────────────────────
-function renderStroke(ctx, points, width, color, widthScale = 1) {
+// ── Draw a uniform-width stroke onto any ctx ──────────────────────────────────
+function renderStroke(ctx, points, width, color) {
   if (points.length === 0) return;
 
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = width;
+  ctx.strokeStyle = color;
+
   if (points.length === 1) {
-    const r = Math.max(0.5, (width / 2) * (points[0].pressure ?? 0.5) * widthScale);
     ctx.beginPath();
-    ctx.arc(points[0].x, points[0].y, r, 0, Math.PI * 2);
+    ctx.arc(points[0].x, points[0].y, width / 2, 0, Math.PI * 2);
     ctx.fillStyle = color;
     ctx.fill();
     return;
   }
 
-  // Draw as a series of line segments with varying lineWidth.
-  // Each segment gets its own beginPath so lineWidth can change per segment.
-  // This avoids the dotted-caps artefact from the filled-quad approach.
-  ctx.lineCap  = 'round';
-  ctx.lineJoin = 'round';
-  ctx.strokeStyle = color;
-
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
   for (let i = 0; i < points.length - 1; i++) {
-    const a = points[i], b = points[i + 1];
-    const pressure = ((a.pressure ?? 0.5) + (b.pressure ?? 0.5)) / 2;
-    const lw = Math.max(0.5, width * pressure * widthScale);
-
-    ctx.beginPath();
-    ctx.lineWidth = lw;
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
+    const mx = (points[i].x + points[i + 1].x) / 2;
+    const my = (points[i].y + points[i + 1].y) / 2;
+    ctx.quadraticCurveTo(points[i].x, points[i].y, mx, my);
   }
+  ctx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+  ctx.stroke();
 }
 
 // ── Bake a stroke onto an offscreen canvas ────────────────────────────────────
@@ -128,22 +123,6 @@ export function createGhostEngine({ ghostCanvas, viewport }) {
   let rafId = null;
   let isActive = false;
   let idleStart = null;
-
-  // Velocity / pressure
-  const VSMOOTH = 0.7;
-  let lastX = 0, lastY = 0, lastT = 0, svx = 0, svy = 0;
-
-  function getPressure(event, wx, wy) {
-    if (event.pointerType === 'pen' && event.pressure > 0) return event.pressure;
-    const now = performance.now();
-    const dt = Math.max(now - lastT, 1);
-    const rvx = (wx - lastX) / dt, rvy = (wy - lastY) / dt;
-    svx = svx * VSMOOTH + rvx * (1 - VSMOOTH);
-    svy = svy * VSMOOTH + rvy * (1 - VSMOOTH);
-    lastX = wx; lastY = wy; lastT = now;
-    const speed = Math.hypot(svx, svy);
-    return 0.95 + Math.min(speed / 20, 1) * (0.15 - 0.95);
-  }
 
   function toWorld(event) {
     return viewport
@@ -218,11 +197,9 @@ export function createGhostEngine({ ghostCanvas, viewport }) {
 
     onPointerDown(event) {
       const { x, y } = toWorld(event);
-      lastX = x; lastY = y; lastT = performance.now(); svx = 0; svy = 0;
-      idleStart = null; // freeze fade clock
-      const pressure = getPressure(event, x, y);
+      idleStart = null;
       activeGhost = {
-        points: [{ x, y, pressure }],
+        points: [{ x, y }],
         color: event.currentColor || '#f97316',
         width: event.currentWidth || 8,
         baked: null,
@@ -233,15 +210,13 @@ export function createGhostEngine({ ghostCanvas, viewport }) {
     onPointerMove(event) {
       if (!activeGhost) return;
       const { x, y } = toWorld(event);
-      const pressure = getPressure(event, x, y);
-      activeGhost.points.push({ x, y, pressure });
+      activeGhost.points.push({ x, y });
     },
 
     onPointerUp(event) {
       if (!activeGhost) return;
       const { x, y } = toWorld(event);
-      const pressure = getPressure(event, x, y);
-      activeGhost.points.push({ x, y, pressure });
+      activeGhost.points.push({ x, y });
 
       // Decimate then bake — happens once per stroke
       activeGhost.points = dpReduce(activeGhost.points, DECIMATE_EPS);
