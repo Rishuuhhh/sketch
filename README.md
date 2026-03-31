@@ -10,7 +10,7 @@ A browser-only infinite whiteboard built with vanilla HTML5, CSS, and JavaScript
 
 | Feature | Details |
 |---|---|
-| **Pen tool** | Pressure-sensitive strokes — real stylus pressure or velocity-simulated for mouse |
+| **Pen tool** | Smooth uniform strokes with round caps |
 | **Eraser tool** | Stroke-level eraser — removes whole strokes on contact, not pixels |
 | **Ghost tool** | Ephemeral strokes that glow and fade after you stop drawing — great for presentations |
 | **Infinite canvas** | Pan with middle-mouse / Space+drag / two-finger touch; zoom with scroll wheel or pinch |
@@ -65,8 +65,8 @@ Then open `http://localhost:3000` (or whatever port your server uses).
     ├── main.js             # Bootstrap: wires all modules, handles pan/zoom/pointer events
     ├── types.js            # JSDoc typedefs + factory helpers (AppState, Stroke, Point)
     ├── StateManager.js     # Owns AppState — undo/redo/clear/tool/color/width mutations
-    ├── DrawingEngine.js    # Pointer event → world-space stroke points + pressure simulation
-    ├── Renderer.js         # Replay-based canvas renderer with variable-width stroke drawing
+    ├── DrawingEngine.js    # Pointer event → world-space stroke points
+    ├── Renderer.js         # Replay-based canvas renderer with smooth bezier stroke drawing
     ├── GhostEngine.js      # Ephemeral ghost strokes on an overlay canvas with fade animation
     ├── Viewport.js         # Pan/zoom transform (world ↔ screen coordinate mapping)
     ├── CursorManager.js    # SVG data-URI cursors that match the active tool and color

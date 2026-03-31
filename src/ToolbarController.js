@@ -35,11 +35,9 @@ export function createToolbarController({
   function updateButtonStates() {
     const state = stateManager.getState();
 
-    // Undo/redo enabled state
     btnUndo.disabled = state.strokes.length === 0;
     btnRedo.disabled = state.redoStack.length === 0;
 
-    // Active tool highlight
     if (state.activeTool === 'pen') {
       btnPen.classList.add('active');
       btnEraser.classList.remove('active');

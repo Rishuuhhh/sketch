@@ -21,6 +21,9 @@ function resizeCanvas() {
 }
 resizeCanvas();
 
+// Ensure pen/touch events are not intercepted by the browser
+canvas.style.touchAction = 'none';
+
 // ── Core modules ──────────────────────────────────────────────────────────────
 const viewport      = createViewport();
 const storageService = createStorageService();
@@ -168,6 +171,15 @@ canvas.addEventListener('pointermove', e => {
   if (ghostMode) { ghostEngine.onPointerMove(e); return; }
   engine.onPointerMove(e);
 });
+
+// High-frequency pen input (Chromium only) — gives smoother pressure data
+if ('onpointerrawupdate' in canvas) {
+  canvas.addEventListener('pointerrawupdate', e => {
+    if (e.pointerType !== 'pen') return;
+    if (isPanning || ghostMode) return;
+    engine.onPointerMove(e);
+  });
+}
 
 canvas.addEventListener('pointerup', e => {
   if (isPanning) {
