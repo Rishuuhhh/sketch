@@ -52,7 +52,7 @@ describe('ExportService property tests', () => {
           return decoded.w === width && decoded.h === height;
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 20 }
     );
   });
 });

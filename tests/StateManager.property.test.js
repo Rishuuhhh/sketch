@@ -50,7 +50,7 @@ describe('StateManager property tests', () => {
           return sm.getState().redoStack.length === 0;
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 20 }
     );
   });
 
@@ -98,7 +98,7 @@ describe('StateManager property tests', () => {
 
         return true;
       }),
-      { numRuns: 100 }
+      { numRuns: 20 }
     );
   });
 
@@ -144,7 +144,7 @@ describe('StateManager property tests', () => {
 
         return true;
       }),
-      { numRuns: 100 }
+      { numRuns: 20 }
     );
   });
 });

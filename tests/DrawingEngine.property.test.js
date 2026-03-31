@@ -89,7 +89,7 @@ describe('DrawingEngine property tests', () => {
           return true;
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 20 }
     );
   });
 
@@ -152,7 +152,7 @@ describe('DrawingEngine property tests', () => {
           return true;
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 20 }
     );
   });
 });

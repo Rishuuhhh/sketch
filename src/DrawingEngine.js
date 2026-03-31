@@ -44,14 +44,14 @@ function applyErase(eraserPoints, eraserRadius, state, stateManager) {
 // We smooth pressure using an exponential moving average of pointer velocity.
 // Fast movement → lower pressure (thin); slow/stopped → higher pressure (thick).
 
-const VELOCITY_SMOOTH = 0.7;   // EMA factor for velocity smoothing
-const MIN_SIM_PRESSURE = 0.15;
-const MAX_SIM_PRESSURE = 0.95;
+const VELOCITY_SMOOTH = 0.6;   // EMA factor for velocity smoothing
+const MIN_SIM_PRESSURE = 0.08;
+const MAX_SIM_PRESSURE = 1.0;
 
 function velocityToPressure(vx, vy) {
   const speed = Math.hypot(vx, vy);
-  // Map speed 0–20 px/ms to pressure 0.95–0.15 (inverse)
-  const t = Math.min(speed / 20, 1);
+  // Map speed 0–8 px/ms to pressure 1.0–0.08 (inverse: fast = thin)
+  const t = Math.min(speed / 8, 1);
   return MAX_SIM_PRESSURE + t * (MIN_SIM_PRESSURE - MAX_SIM_PRESSURE);
 }
 
@@ -65,7 +65,11 @@ export function createDrawingEngine({ stateManager, storageService, renderer, vi
   let smoothVx = 0, smoothVy = 0;
 
   function getPressure(event, wx, wy) {
-    if (event.pointerType === 'pen' && event.pressure > 0) return event.pressure;
+    // Use real pen pressure when available
+    if (event.pointerType === 'pen') {
+      // Apply power curve: makes light touches noticeably thinner
+      return Math.pow(Math.max(0.01, event.pressure), 0.6);
+    }
     const now = performance.now();
     const dt = Math.max(now - lastT, 1);
     const rawVx = (wx - lastX) / dt;
@@ -76,10 +80,15 @@ export function createDrawingEngine({ stateManager, storageService, renderer, vi
     return velocityToPressure(smoothVx, smoothVy);
   }
 
-  /** Convert a pointer event's offset coords to world space. */
+  /** Convert a pointer event's coords to world space. */
   function toWorld(event) {
-    return viewport ? viewport.toWorld(event.offsetX, event.offsetY)
-                    : { x: event.offsetX, y: event.offsetY };
+    if (viewport) {
+      // Use offsetX/offsetY when available (standard events), fall back to clientX for coalesced
+      const ox = event.offsetX ?? (event.clientX - event.target.getBoundingClientRect().left);
+      const oy = event.offsetY ?? (event.clientY - event.target.getBoundingClientRect().top);
+      return viewport.toWorld(ox, oy);
+    }
+    return { x: event.offsetX, y: event.offsetY };
   }
 
   return {
@@ -107,22 +116,27 @@ export function createDrawingEngine({ stateManager, storageService, renderer, vi
       const state = stateManager.getState();
       if (state.activeStroke === null) return;
 
-      const { x, y } = toWorld(event);
+      // Use coalesced events for smoother, higher-fidelity input
+      const events = event.getCoalescedEvents ? event.getCoalescedEvents() : [event];
 
-      if (state.activeStroke.tool === 'eraser') {
-        const pt = createPoint(x, y, 0.5);
-        state.activeStroke.points.push(pt);
-        pendingEraserPoints.push(pt);
+      for (const e of events) {
+        const { x, y } = toWorld(e);
 
-        const eraserRadius = state.activeStroke.width / 2;
-        const removed = applyErase(pendingEraserPoints, eraserRadius, state, stateManager);
-        if (removed.size > 0) {
-          pendingEraserPoints = [];
-          storageService.save(state.strokes);
+        if (state.activeStroke.tool === 'eraser') {
+          const pt = createPoint(x, y, 0.5);
+          state.activeStroke.points.push(pt);
+          pendingEraserPoints.push(pt);
+
+          const eraserRadius = state.activeStroke.width / 2;
+          const removed = applyErase(pendingEraserPoints, eraserRadius, state, stateManager);
+          if (removed.size > 0) {
+            pendingEraserPoints = [];
+            storageService.save(state.strokes);
+          }
+        } else {
+          const pressure = getPressure(e, x, y);
+          state.activeStroke.points.push(createPoint(x, y, pressure));
         }
-      } else {
-        const pressure = getPressure(event, x, y);
-        state.activeStroke.points.push(createPoint(x, y, pressure));
       }
 
       renderer.render(state);

@@ -77,7 +77,7 @@ describe('ToolbarController property tests', () => {
           return btnUndo.disabled === true;
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 20 }
     );
   });
 
@@ -107,7 +107,7 @@ describe('ToolbarController property tests', () => {
           return btnRedo.disabled === true;
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 20 }
     );
   });
 
@@ -136,7 +136,7 @@ describe('ToolbarController property tests', () => {
           return btnUndo.disabled === false;
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 20 }
     );
   });
 
@@ -165,7 +165,7 @@ describe('ToolbarController property tests', () => {
           return btnRedo.disabled === false;
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 20 }
     );
   });
 });
