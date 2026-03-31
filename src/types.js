@@ -47,7 +47,9 @@ export function createDefaultAppState() {
     activeStroke: null,
     activeTool: 'pen',
     strokeColor: '#ffffff',
+    ghostColor: '#f97316',
     strokeWidth: 4,
+    undoAvailable: false,
   };
 }
 

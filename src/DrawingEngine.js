@@ -33,10 +33,12 @@ function applyErase(eraserPoints, eraserRadius, state, stateManager) {
       .map(s => s.id)
   );
   if (toRemove.size === 0) return toRemove;
-  const sentinel = createStroke('erase', '', 0, []);
-  sentinel.erasedIds = [...toRemove];
-  state.strokes = state.strokes.filter(s => !toRemove.has(s.id));
-  stateManager.commitStroke(sentinel);
+
+  const before = state.strokes.slice();
+  const after  = state.strokes.filter(s => !toRemove.has(s.id));
+
+  // Commit as an undoable erase action
+  stateManager.commitErase(before, after);
   return toRemove;
 }
 

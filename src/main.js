@@ -28,9 +28,7 @@ canvas.style.touchAction = 'none';
 const viewport      = createViewport();
 const storageService = createStorageService();
 
-const savedStrokes = storageService.load();
 const state = createDefaultAppState();
-if (savedStrokes !== null) state.strokes = savedStrokes;
 
 const stateManager = createStateManager(state);
 const renderer     = createRenderer(canvas, viewport);
@@ -87,7 +85,11 @@ function setGhostMode(on) {
   ghostMode = on;
   ghostEngine.isActive = on;
   btnGhost.classList.toggle('ghost-active', on);
-  // Deactivate normal tool buttons visually when ghost is on
+  // Show ghost color picker only in ghost mode, hide stroke picker
+  const ghostPickerWrap = document.getElementById('ghost-picker-wrap');
+  const strokePickerWrap = document.getElementById('stroke-picker-wrap');
+  if (ghostPickerWrap) ghostPickerWrap.style.display = on ? '' : 'none';
+  if (strokePickerWrap) strokePickerWrap.style.display = on ? 'none' : '';
   document.getElementById('btn-pen').classList.toggle('active', !on && stateManager.getState().activeTool === 'pen');
   document.getElementById('btn-eraser').classList.toggle('active', !on && stateManager.getState().activeTool === 'eraser');
   if (on) {
@@ -98,9 +100,10 @@ function setGhostMode(on) {
 }
 
 function ghostCursor() {
+  const color = stateManager.getState().ghostColor || '#f97316';
   const size = 14, c = 7;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
-    <circle cx="${c}" cy="${c}" r="5" fill="#f97316" stroke="rgba(0,0,0,0.5)" stroke-width="1.5"/>
+    <circle cx="${c}" cy="${c}" r="5" fill="${color}" stroke="rgba(0,0,0,0.5)" stroke-width="1.5"/>
     <circle cx="${c}" cy="${c}" r="5" fill="none" stroke="rgba(255,180,80,0.7)" stroke-width="3" opacity="0.5"/>
   </svg>`;
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${c} ${c}, crosshair`;
@@ -126,9 +129,9 @@ canvas.addEventListener('pointerdown', e => {
   }
 
   if (ghostMode) {
-    // Attach current color/width to the event for ghost engine
+    // Attach ghost color/width to the event for ghost engine
     const s = stateManager.getState();
-    e.currentColor = s.strokeColor;
+    e.currentColor = s.ghostColor;
     e.currentWidth = s.strokeWidth;
     ghostEngine.onPointerDown(e);
     return;
@@ -254,6 +257,11 @@ window.addEventListener('resize', () => {
 // ── Initial render ────────────────────────────────────────────────────────────
 render();
 toolbarController.updateButtonStates();
+
+// Ghost color changes from the inline color picker
+document.addEventListener('ghost-color-change', e => {
+  stateManager.setGhostColor(e.detail);
+});
 
 // Sync cursor when toolbar changes tool or width
 document.getElementById('btn-pen')?.addEventListener('click', () => { setGhostMode(false); cursorManager.update(); });

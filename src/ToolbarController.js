@@ -35,7 +35,7 @@ export function createToolbarController({
   function updateButtonStates() {
     const state = stateManager.getState();
 
-    btnUndo.disabled = state.strokes.length === 0;
+    btnUndo.disabled = !state.undoAvailable;
     btnRedo.disabled = state.redoStack.length === 0;
 
     if (state.activeTool === 'pen') {
@@ -103,6 +103,9 @@ export function createToolbarController({
 
   // Run once to sync initial state
   updateButtonStates();
+
+  // Re-sync after every stroke commit (DrawingEngine fires this)
+  document.addEventListener('stroke-committed', updateButtonStates);
 
   return { updateButtonStates };
 }

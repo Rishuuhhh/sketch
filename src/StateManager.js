@@ -1,98 +1,75 @@
 /** @import { AppState, Stroke } from './types.js' */
 import { createDefaultAppState, createStroke } from './types.js';
 
-/**
- * Creates a StateManager that owns AppState and exposes mutation methods.
- *
- * @param {AppState} [initialState] - Optional initial state; defaults to createDefaultAppState().
- * @returns {{
- *   getState(): AppState,
- *   commitStroke(stroke: Stroke): void,
- *   undo(): void,
- *   redo(): void,
- *   clearCanvas(): void,
- *   setTool(tool: 'pen' | 'eraser'): void,
- *   setColor(color: string): void,
- *   setStrokeWidth(width: number): void,
- * }}
- */
+const MAX_UNDO = 50;
+
 export function createStateManager(initialState) {
   /** @type {AppState} */
   const state = initialState ?? createDefaultAppState();
 
+  // Each entry: { do: fn, undo: fn }
+  const undoStack = [];
+  const redoStack = [];
+
+  function push(action) {
+    action.do();
+    undoStack.push(action);
+    if (undoStack.length > MAX_UNDO) undoStack.shift();
+    redoStack.length = 0;
+    sync();
+  }
+
+  function sync() {
+    state.undoAvailable = undoStack.length > 0;
+    state.redoStack = redoStack.length > 0 ? [{}] : [];
+    document.dispatchEvent(new CustomEvent('stroke-committed'));
+  }
+
   return {
-    /** Returns the current AppState (by reference). */
-    getState() {
-      return state;
-    },
+    getState() { return state; },
 
-    /**
-     * Commits a completed stroke to the history.
-     * Clears redoStack when the stroke tool is 'pen' or 'eraser'.
-     *
-     * @param {Stroke} stroke
-     */
     commitStroke(stroke) {
-      state.strokes.push(stroke);
-      if (stroke.tool === 'pen' || stroke.tool === 'eraser') {
-        state.redoStack = [];
-      }
+      push({
+        do:   () => state.strokes.push(stroke),
+        undo: () => { state.strokes = state.strokes.filter(s => s !== stroke); },
+      });
     },
 
-    /**
-     * Undoes the last stroke by moving it from strokes to redoStack.
-     * No-op when strokes is empty.
-     */
-    undo() {
-      if (state.strokes.length === 0) return;
-      const last = state.strokes.pop();
-      state.redoStack.push(last);
+    commitErase(before, after) {
+      push({
+        do:   () => { state.strokes = after; },
+        undo: () => { state.strokes = before; },
+      });
     },
 
-    /**
-     * Redoes the last undone stroke by moving it from redoStack back to strokes.
-     * No-op when redoStack is empty.
-     */
-    redo() {
-      if (state.redoStack.length === 0) return;
-      const last = state.redoStack.pop();
-      state.strokes.push(last);
-    },
-
-    /**
-     * Clears the canvas by pushing a sentinel clear stroke onto strokes,
-     * making the action undoable.
-     */
     clearCanvas() {
+      const before = state.strokes.slice();
       const clearStroke = createStroke('clear', '', 0, []);
-      state.strokes.push(clearStroke);
+      push({
+        do:   () => { state.strokes = [...before, clearStroke]; },
+        undo: () => { state.strokes = before; },
+      });
     },
 
-    /**
-     * Sets the active drawing tool.
-     *
-     * @param {'pen' | 'eraser'} tool
-     */
-    setTool(tool) {
-      state.activeTool = tool;
+    undo() {
+      if (undoStack.length === 0) return;
+      const action = undoStack.pop();
+      action.undo();
+      redoStack.push(action);
+      sync();
     },
 
-    /**
-     * Sets the stroke color for subsequent strokes.
-     *
-     * @param {string} color - CSS color string.
-     */
-    setColor(color) {
-      state.strokeColor = color;
+    redo() {
+      if (redoStack.length === 0) return;
+      const action = redoStack.pop();
+      action.do();
+      undoStack.push(action);
+      sync();
     },
 
-    /**
-     * Sets the stroke width for subsequent strokes.
-     *
-     * @param {number} width - Width in pixels.
-     */
-    setStrokeWidth(width) {
-      state.strokeWidth = width;
-    },
+    setTool(tool)          { state.activeTool = tool; },
+    setColor(color)        { state.strokeColor = color; },
+    setStrokeWidth(width)  { state.strokeWidth = width; },
+    setGhostColor(color)   { state.ghostColor = color; },
   };
 }
