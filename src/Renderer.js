@@ -92,17 +92,21 @@ export function createRenderer(canvas, viewport) {
           ctx.restore();
         } else if (state.activeStroke.tool === 'lasso') {
           ctx.save();
-          ctx.strokeStyle = state.activeStroke.color;
-          ctx.lineWidth = state.activeStroke.width / zoom;
-          ctx.setLineDash([6 / zoom, 4 / zoom]);
-          ctx.beginPath();
           const pts = state.activeStroke.points;
           if (pts.length > 0) {
+            ctx.beginPath();
             ctx.moveTo(pts[0].x, pts[0].y);
-            for (let i = 1; i < pts.length; i++) {
-               ctx.lineTo(pts[i].x, pts[i].y);
+            for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+            if (pts.length > 1) ctx.closePath();
+
+            if (pts.length >= 3) {
+              ctx.fillStyle = 'rgba(139, 92, 246, 0.08)';
+              ctx.fill();
             }
-            if (pts.length > 2) ctx.closePath();
+
+            ctx.strokeStyle = state.activeStroke.color;
+            ctx.lineWidth = state.activeStroke.width / zoom;
+            ctx.setLineDash([6 / zoom, 4 / zoom]);
             ctx.stroke();
           }
           ctx.restore();
@@ -140,6 +144,21 @@ export function createRenderer(canvas, viewport) {
          for (const [hx, hy] of handles) {
             ctx.beginPath();
             ctx.arc(hx, hy, hr, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+         }
+
+         const midX = (minX + maxX) / 2;
+         const midY = (minY + maxY) / 2;
+         const edgeHandles = [
+            [midX, minY],   // top
+            [maxX, midY],   // right
+            [midX, maxY],   // bottom
+            [minX, midY],   // left
+         ];
+         for (const [hx, hy] of edgeHandles) {
+            ctx.beginPath();
+            ctx.rect(hx - hr, hy - hr, hr * 2, hr * 2);
             ctx.fill();
             ctx.stroke();
          }

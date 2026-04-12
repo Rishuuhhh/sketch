@@ -3,6 +3,8 @@ import { createDefaultAppState, createStroke } from './types.js';
 
 const MAX_UNDO = 50;
 
+const deepCloneStrokes = strokes => strokes.map(s => ({ ...s, points: s.points.map(p => ({ ...p })) }));
+
 export function createStateManager(initialState) {
   /** @type {AppState} */
   const state = initialState ?? createDefaultAppState();
@@ -69,7 +71,10 @@ export function createStateManager(initialState) {
 
     setTool(tool) {
       state.activeTool = tool;
-      if (tool !== 'lasso') state.selection.strokeIds = [];
+      if (tool !== 'lasso') {
+        state.selection.strokeIds = [];
+        state.selection.transform = null;
+      }
     },
     setColor(color)        { state.strokeColor = color; },
     setStrokeWidth(width)  { state.strokeWidth = width; },
@@ -86,10 +91,6 @@ export function createStateManager(initialState) {
       const { dx, dy, scaleX, scaleY, originX, originY } = state.selection.transform;
       const ids = state.selection.strokeIds;
       
-      const beforeStrokes = state.strokes.map(s => ({...s, points: [...s.points]})); // deep copy enough?
-      // Wait, we need a full deep clone of the points array for undo
-      const deepCloneStrokes = strokes => strokes.map(s => ({...s, points: s.points.map(p => ({...p}))}));
-
       const before = deepCloneStrokes(state.strokes);
       
       const doTransform = () => {
@@ -127,6 +128,46 @@ export function createStateManager(initialState) {
       };
 
       push({ do: doTransform, undo: undoTransform });
-    }
+    },
+
+    commitDelete(ids) {
+      const toDelete = new Set(ids);
+      const before = deepCloneStrokes(state.strokes);
+      push({
+        do: () => {
+          state.strokes = state.strokes.filter(s => !toDelete.has(s.id));
+          state.selection.strokeIds = [];
+          state.selection.transform = null;
+        },
+        undo: () => {
+          state.strokes = before;
+          state.selection.strokeIds = [...ids];
+          state.selection.transform = null;
+        },
+      });
+    },
+
+    commitDuplicate(ids) {
+      const originals = state.strokes.filter(s => ids.includes(s.id));
+      const OFFSET = 16;
+      const duplicates = originals.map(s => ({
+        ...s,
+        id: String(Date.now()) + Math.random().toString(36).slice(2),
+        points: s.points.map(p => ({ ...p, x: p.x + OFFSET, y: p.y + OFFSET })),
+      }));
+      const dupIds = duplicates.map(s => s.id);
+      push({
+        do: () => {
+          state.strokes = [...state.strokes, ...duplicates];
+          state.selection.strokeIds = dupIds;
+          state.selection.transform = null;
+        },
+        undo: () => {
+          state.strokes = state.strokes.filter(s => !dupIds.includes(s.id));
+          state.selection.strokeIds = [...ids];
+          state.selection.transform = null;
+        },
+      });
+    },
   };
 }

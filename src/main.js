@@ -255,6 +255,31 @@ window.addEventListener('keydown', e => {
     render();
     showZoom();
   }
+
+  const state = stateManager.getState();
+
+  // Delete / Backspace — delete selected strokes
+  if ((e.key === 'Delete' || e.key === 'Backspace') && state.activeTool === 'lasso') {
+    e.preventDefault();
+    selectionEngine.deleteSelection();
+    toolbarController.updateButtonStates();
+    return;
+  }
+
+  // Escape — cancel lasso draw or deselect
+  if (e.key === 'Escape' && state.activeTool === 'lasso') {
+    selectionEngine.cancelOrDeselect();
+    toolbarController.updateButtonStates();
+    return;
+  }
+
+  // Ctrl+D / Cmd+D — duplicate selection
+  if ((e.ctrlKey || e.metaKey) && e.key === 'd' && state.activeTool === 'lasso') {
+    e.preventDefault();
+    selectionEngine.duplicateSelection();
+    toolbarController.updateButtonStates();
+    return;
+  }
 });
 
 window.addEventListener('keyup', e => {
