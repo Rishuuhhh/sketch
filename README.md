@@ -1,5 +1,7 @@
 # ✦ Sketch
 
+**[🚀 Live demo](https://rishuuhhh.github.io/sketch/)**
+
 A browser-only infinite whiteboard built with vanilla HTML5, CSS, and JavaScript. No framework, no build step — open `index.html` and draw.
 
 ![screenshot placeholder](./Screenshot.png)
