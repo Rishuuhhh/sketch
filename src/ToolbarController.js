@@ -24,6 +24,10 @@ export function createToolbarController({
 }) {
   const btnPen = doc.getElementById('btn-pen');
   const btnEraser = doc.getElementById('btn-eraser');
+  const btnLasso = doc.getElementById('btn-lasso');
+  const btnPan = doc.getElementById('btn-pan');
+
+  // ... (keeping other variables same)
   const colorPicker = doc.getElementById('color-picker');
   const strokeWidth = doc.getElementById('stroke-width');
   const btnClear = doc.getElementById('btn-clear');
@@ -38,13 +42,14 @@ export function createToolbarController({
     btnUndo.disabled = !state.undoAvailable;
     btnRedo.disabled = state.redoStack.length === 0;
 
-    if (state.activeTool === 'pen') {
-      btnPen.classList.add('active');
-      btnEraser.classList.remove('active');
-    } else {
-      btnEraser.classList.add('active');
-      btnPen.classList.remove('active');
+    const isPan = state.activeTool === 'pan';
+    if (btnPan) {
+      btnPan.classList.toggle('active', isPan);
     }
+    
+    btnPen.classList.toggle('active', state.activeTool === 'pen');
+    btnEraser.classList.toggle('active', state.activeTool === 'eraser');
+    if (btnLasso) btnLasso.classList.toggle('active', state.activeTool === 'lasso');
   }
 
   // --- Tool buttons ---
@@ -57,6 +62,21 @@ export function createToolbarController({
     stateManager.setTool('eraser');
     updateButtonStates();
   });
+
+  if (btnLasso) {
+    btnLasso.addEventListener('click', () => {
+      stateManager.setTool('lasso');
+      updateButtonStates();
+    });
+  }
+
+  // --- Pan tool ---
+  if (btnPan) {
+    btnPan.addEventListener('click', () => {
+      stateManager.setTool('pan');
+      updateButtonStates();
+    });
+  }
 
   // --- Color picker ---
   colorPicker.addEventListener('change', (event) => {

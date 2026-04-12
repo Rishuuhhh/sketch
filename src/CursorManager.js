@@ -9,8 +9,9 @@ function svgUri(svg, hx, hy) {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${hx} ${hy}, crosshair`;
 }
 
-function penCursor(color) {
-  const size = 24, c = 12, arm = 6, gap = 3, r = 2.5;
+function penCursor(color, strokeWidth, zoom) {
+  const r = Math.max(1.5, Math.min(24, (strokeWidth / 2) * zoom));
+  const size = Math.ceil(r * 2 + 8), c = size / 2;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
     <!-- shadow dot -->
     <circle cx="${c}" cy="${c}" r="${r + 1}" fill="rgba(0,0,0,0.45)"/>
@@ -43,9 +44,15 @@ export function createCursorManager(canvas, stateManager, viewport) {
 
     last = { tool: activeTool, width: strokeWidth, zoom, color: strokeColor };
 
+    if (activeTool === 'pan') {
+      canvas.style.cursor = 'grab';
+      return;
+    }
+
     canvas.style.cursor = activeTool === 'eraser'
       ? eraserCursor(strokeWidth, zoom)
-      : penCursor(strokeColor);
+      : activeTool === 'lasso' ? 'crosshair'
+      : penCursor(strokeColor, strokeWidth, zoom);
   }
 
   return { update };
