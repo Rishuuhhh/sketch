@@ -5,6 +5,7 @@ function setupDOM() {
   document.body.innerHTML = `
     <button id="btn-pen" class="active"></button>
     <button id="btn-eraser"></button>
+    <button id="btn-pan"></button>
     <input id="color-picker" type="color" value="#000000" />
     <select id="stroke-width">
       <option value="2">S</option>
@@ -151,5 +152,76 @@ describe('ToolbarController', () => {
     controller.updateButtonStates();
     expect(document.getElementById('btn-eraser').classList.contains('active')).toBe(true);
     expect(document.getElementById('btn-pen').classList.contains('active')).toBe(false);
+  });
+
+  // Pan tool wiring — Requirement 2.2, 2.3, 7.1, 7.2, 7.3
+
+  // Clicking #btn-pan calls stateManager.setTool('pan')
+  it('clicking pan button calls stateManager.setTool("pan")', () => {
+    const deps = createDeps();
+    createToolbarController(deps);
+    document.getElementById('btn-pan').click();
+    expect(deps.stateManager.setTool).toHaveBeenCalledWith('pan');
+  });
+
+  // updateButtonStates adds 'active' to #btn-pan when activeTool === 'pan'
+  it('updateButtonStates adds "active" to #btn-pan when activeTool is "pan"', () => {
+    const deps = createDeps({ activeTool: 'pan' });
+    const controller = createToolbarController(deps);
+    controller.updateButtonStates();
+    expect(document.getElementById('btn-pan').classList.contains('active')).toBe(true);
+  });
+
+  // updateButtonStates removes 'active' from #btn-pen and #btn-eraser when activeTool === 'pan'
+  it('updateButtonStates removes "active" from btn-pen and btn-eraser when activeTool is "pan"', () => {
+    const deps = createDeps({ activeTool: 'pan' });
+    const controller = createToolbarController(deps);
+    // Pre-set active on pen and eraser to confirm they get removed
+    document.getElementById('btn-pen').classList.add('active');
+    document.getElementById('btn-eraser').classList.add('active');
+    controller.updateButtonStates();
+    expect(document.getElementById('btn-pen').classList.contains('active')).toBe(false);
+    expect(document.getElementById('btn-eraser').classList.contains('active')).toBe(false);
+  });
+
+  // Clicking Pen/Eraser while pan is active removes 'active' from #btn-pan
+  it('clicking pen while pan is active removes "active" from #btn-pan', () => {
+    // Start with pan active
+    const deps = createDeps({ activeTool: 'pan' });
+    const controller = createToolbarController(deps);
+    controller.updateButtonStates();
+    expect(document.getElementById('btn-pan').classList.contains('active')).toBe(true);
+
+    // Now simulate switching to pen
+    deps.stateManager.getState.mockReturnValue({
+      activeTool: 'pen',
+      strokes: [],
+      redoStack: [],
+      strokeColor: '#000000',
+      strokeWidth: 6,
+    });
+    document.getElementById('btn-pen').click();
+    expect(document.getElementById('btn-pan').classList.contains('active')).toBe(false);
+    expect(document.getElementById('btn-pen').classList.contains('active')).toBe(true);
+  });
+
+  it('clicking eraser while pan is active removes "active" from #btn-pan', () => {
+    // Start with pan active
+    const deps = createDeps({ activeTool: 'pan' });
+    const controller = createToolbarController(deps);
+    controller.updateButtonStates();
+    expect(document.getElementById('btn-pan').classList.contains('active')).toBe(true);
+
+    // Now simulate switching to eraser
+    deps.stateManager.getState.mockReturnValue({
+      activeTool: 'eraser',
+      strokes: [],
+      redoStack: [],
+      strokeColor: '#000000',
+      strokeWidth: 6,
+    });
+    document.getElementById('btn-eraser').click();
+    expect(document.getElementById('btn-pan').classList.contains('active')).toBe(false);
+    expect(document.getElementById('btn-eraser').classList.contains('active')).toBe(true);
   });
 });

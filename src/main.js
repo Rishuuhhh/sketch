@@ -8,7 +8,7 @@ import { createDrawingEngine } from './DrawingEngine.js';
 import { createViewport } from './Viewport.js';
 import { createCursorManager } from './CursorManager.js';
 import { createGhostEngine } from './GhostEngine.js';
-
+import { createSelectionEngine } from './SelectionEngine.js';
 // ── Canvas setup ──────────────────────────────────────────────────────────────
 const canvas = document.getElementById('canvas');
 const ghostCanvas = document.getElementById('ghost-canvas');
@@ -41,6 +41,7 @@ const toolbarController = createToolbarController({
 });
 
 const engine = createDrawingEngine({ stateManager, storageService, renderer, viewport });
+const selectionEngine = createSelectionEngine({ stateManager, storageService, renderer, viewport });
 
 // ── Render helper (also syncs cursor) ────────────────────────────────────────
 function render() {
@@ -59,10 +60,11 @@ let activeTouches = new Map(); // pointerId → {x,y}
 let lastPinchDist = null;
 
 function shouldPan(event) {
-  // Middle mouse, or Space+left, or pen barrel button (buttons & 2)
+  // Middle mouse, or Space+left, or pen barrel button (buttons & 2), or pan tool active
   return event.button === 1
     || (event.button === 0 && spaceDown)
-    || (event.pointerType === 'pen' && event.buttons === 2);
+    || (event.pointerType === 'pen' && event.buttons === 2)
+    || (event.button === 0 && stateManager.getState().activeTool === 'pan');
 }
 
 // ── Zoom indicator ────────────────────────────────────────────────────────────
@@ -92,6 +94,7 @@ function setGhostMode(on) {
   if (strokePickerWrap) strokePickerWrap.style.display = on ? 'none' : '';
   document.getElementById('btn-pen').classList.toggle('active', !on && stateManager.getState().activeTool === 'pen');
   document.getElementById('btn-eraser').classList.toggle('active', !on && stateManager.getState().activeTool === 'eraser');
+  document.getElementById('btn-lasso')?.classList.toggle('active', !on && stateManager.getState().activeTool === 'lasso');
   if (on) {
     canvas.style.cursor = ghostCursor();
   } else {
@@ -137,6 +140,11 @@ canvas.addEventListener('pointerdown', e => {
     return;
   }
 
+  if (stateManager.getState().activeTool === 'lasso') {
+    selectionEngine.onPointerDown(e);
+    return;
+  }
+
   engine.onPointerDown(e);
 });
 
@@ -172,6 +180,7 @@ canvas.addEventListener('pointermove', e => {
   }
 
   if (ghostMode) { ghostEngine.onPointerMove(e); return; }
+  if (stateManager.getState().activeTool === 'lasso') { selectionEngine.onPointerMove(e); return; }
   engine.onPointerMove(e);
 });
 
@@ -180,6 +189,7 @@ if ('onpointerrawupdate' in canvas) {
   canvas.addEventListener('pointerrawupdate', e => {
     if (e.pointerType !== 'pen') return;
     if (isPanning || ghostMode) return;
+    if (stateManager.getState().activeTool === 'lasso') { selectionEngine.onPointerMove(e); return; }
     engine.onPointerMove(e);
   });
 }
@@ -188,18 +198,25 @@ canvas.addEventListener('pointerup', e => {
   if (isPanning) {
     isPanning = false;
     canvas.releasePointerCapture(e.pointerId);
-    if (!spaceDown) cursorManager.update(); else canvas.style.cursor = 'grab';
+    const panToolActive = stateManager.getState().activeTool === 'pan';
+    if (!spaceDown && !panToolActive) {
+      cursorManager.update();
+    } else {
+      canvas.style.cursor = 'grab';
+    }
     return;
   }
   activeTouches.delete(e.pointerId);
   lastPinchDist = null;
   if (ghostMode) { ghostEngine.onPointerUp(e); return; }
+  if (stateManager.getState().activeTool === 'lasso') { selectionEngine.onPointerUp(e); return; }
   engine.onPointerUp(e);
 });
 
 canvas.addEventListener('pointerleave', e => {
   if (isPanning) return;
   activeTouches.delete(e.pointerId);
+  if (stateManager.getState().activeTool === 'lasso') { selectionEngine.onPointerUp(e); return; }
   engine.onPointerUp(e);
 });
 
@@ -266,5 +283,7 @@ document.addEventListener('ghost-color-change', e => {
 // Sync cursor when toolbar changes tool or width
 document.getElementById('btn-pen')?.addEventListener('click', () => { setGhostMode(false); cursorManager.update(); });
 document.getElementById('btn-eraser')?.addEventListener('click', () => { setGhostMode(false); cursorManager.update(); });
+document.getElementById('btn-lasso')?.addEventListener('click', () => { setGhostMode(false); cursorManager.update(); });
+document.getElementById('btn-pan')?.addEventListener('click', () => { setGhostMode(false); cursorManager.update(); });
 document.querySelectorAll('.width-btn').forEach(b => b.addEventListener('click', () => cursorManager.update()));
 document.getElementById('color-picker')?.addEventListener('change', () => cursorManager.update());

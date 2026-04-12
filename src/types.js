@@ -30,9 +30,12 @@
  * @property {Stroke[]} strokes - Committed stroke history used for replay-based rendering.
  * @property {Stroke[]} redoStack - Strokes available for redo after an undo action.
  * @property {Stroke | null} activeStroke - The stroke currently being drawn, or null.
- * @property {'pen' | 'eraser'} activeTool - The currently selected drawing tool.
+ * @property {'pen' | 'eraser' | 'lasso'} activeTool - The currently selected drawing tool.
  * @property {string} strokeColor - CSS color string for new strokes (e.g. "#000000").
  * @property {number} strokeWidth - Width in pixels for new strokes.
+ * @property {Object} selection - Current selection state.
+ * @property {string[]} selection.strokeIds - Selected stroke IDs.
+ * @property {Object|null} selection.transform - Transform { dx, dy, scale } or null.
  */
 
 /**
@@ -50,6 +53,10 @@ export function createDefaultAppState() {
     ghostColor: '#f97316',
     strokeWidth: 4,
     undoAvailable: false,
+    selection: {
+      strokeIds: [],
+      transform: null
+    }
   };
 }
 
@@ -68,7 +75,7 @@ export function createPoint(x, y, pressure = 0.5) {
 /**
  * Creates a new Stroke.
  *
- * @param {'pen' | 'eraser' | 'clear'} tool
+ * @param {'pen' | 'eraser' | 'clear' | 'lasso'} tool
  * @param {string} color
  * @param {number} width
  * @param {Point[]} [points]

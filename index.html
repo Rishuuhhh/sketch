@@ -374,10 +374,12 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H7L3 16l10-10 7 7-2.5 2.5"/><path d="M6 11l7 7"/></svg>
         Eraser
       </button>
+
       <button id="btn-ghost" class="toolbar-btn" title="Ghost pen — strokes fade away (G)">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
         Ghost
       </button>
+
     </div>
 
     <div class="sep"></div>
@@ -447,6 +449,19 @@
     </div>
 
     <div class="spacer"></div>
+
+    <div class="tool-group">
+      <button id="btn-pan" class="toolbar-btn" title="Pan (H)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+        Pan
+      </button>
+      <button id="btn-lasso" class="toolbar-btn" data-tool="lasso" title="Lasso Select (S)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 11c0 3-3 6-3 6s-3-3-3-6a3 3 0 1 1 6 0z"/><path d="M16 19.5A2.5 2.5 0 0 1 18.5 22 2.5 2.5 0 0 1 21 19.5 2.5 2.5 0 0 1 18.5 17c-.5 0-1 .2-1.4.5M10 22H6a2 2 0 0 1-2-2v-4M4 10V6a2 2 0 0 1 2-2h4M14 4h4a2 2 0 0 1 2 2v4" stroke-dasharray="2 3"/></svg>
+        Lasso
+      </button>
+    </div>
+
+    <div class="sep"></div>
 
     <button id="btn-export" class="toolbar-btn accent" title="Export as PNG">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -777,7 +792,9 @@
     if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) { e.preventDefault(); document.getElementById('btn-redo').click(); }
     if (e.key === 'p' || e.key === 'P') document.getElementById('btn-pen').click();
     if (e.key === 'e' || e.key === 'E') document.getElementById('btn-eraser').click();
+    if (e.key === 's' || e.key === 'S') document.getElementById('btn-lasso').click();
     if (e.key === 'g' || e.key === 'G') document.getElementById('btn-ghost').click();
+    if (e.key === 'h' || e.key === 'H') document.getElementById('btn-pan').click();
   });
   </script>
 </body>
