@@ -2,6 +2,8 @@
 
 A browser-only infinite whiteboard built with vanilla HTML5, CSS, and JavaScript. No framework, no build step — open `index.html` and draw.
 
+🔗 **Live demo:** [rishuuhhh.github.io/sketch](https://rishuuhhh.github.io/sketch/)
+
 ![screenshot placeholder](./Screenshot.png)
 
 ---
